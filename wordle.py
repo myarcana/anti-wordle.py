@@ -256,10 +256,11 @@ class TheStrongestStrategy:
         self.possible_words = [word for word in self.possible_words if all(word.count(letter) == count for letter, count in present_counts.items())]
 
 
+def play_game(strategy_factory: Callable[[], GuessingStrategy], max_turns: int=6) -> list[(str, list[bool])]:
+    r'''Plays wordle against the user
 
-if __name__ == '__main__':
-    with open('valid-wordle-words.txt', 'r') as f:
-        words = f.read().splitlines()
+    :returns: the list of (guess, answer) pairs representing the turns played during the game
+    '''
     just_fix_windows_console()
     input("Please think of a five-letter word, but don't tell me what it is. Press enter when you're ready.")
     print('I will figured out what you are thinking of by guessing a word at a time.')
@@ -267,11 +268,9 @@ if __name__ == '__main__':
     print('If my guess has more than one of the same letter, and it is in your word, only color as many as appear in your word, giving priority to the most correct ones.')
     print("E.g. if you are thinking of 'allow', " + inline_tiles('ladle', calc_answer('ladle', 'allow')) + ' and ' + inline_tiles('lolly', calc_answer('lolly', 'allow')) + ' would be correct colorings for these guesses.')
     print('Now, play the game!')
-    max_turns = 6
     clear_prompts = True
     random.shuffle(trash_talks)
-    guessing_strategy = lambda: JonathanOlsonTree('salet.tree.hard.json')
-    guesser = guessing_strategy()
+    guesser = strategy_factory()
     turn_number = 0
     undoing = False
     guesses = []
@@ -304,7 +303,7 @@ if __name__ == '__main__':
                 print(Cursor.UP(2) + ' ' * len(out_of_guesses))
                 print(' ' * (len(prompt) + len(word_or_number)))
                 print(Cursor.UP(turn_number - restart_from_turn -  1 + 4), end='\r')
-                guesser = guessing_strategy()
+                guesser = strategy_factory()
                 for historical_guess, historical_answer in zip(guesses, answers):
                     guesser.feedback(historical_guess, historical_answer)
                 turn_number = restart_from_turn - 1
@@ -337,11 +336,18 @@ if __name__ == '__main__':
             print(Cursor.UP(1) + ' ' * (len(guess) * record_unit_width + len(str(max_turns)) + len(' () ')))
             print(Cursor.UP(2) + ' ' * len(prompt), end='\r')
             undoing = True
-            guesser = guessing_strategy()
+            guesser = strategy_factory()
             for historical_guess, historical_answer in zip(guesses, answers):
                 guesser.feedback(historical_guess, historical_answer)
             undo_number += 1
             turn_number -= 1
     else:
         print("I didn't fail, you ran out of RAM.")
+    return list(zip(guesses, answers))
+
+
+if __name__ == '__main__':
+    with open('valid-wordle-words.txt', 'r') as f:
+        words = f.read().splitlines()
+    play_game(lambda: RandomAssStrategy(words))
 
