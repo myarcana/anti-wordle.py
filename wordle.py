@@ -2,6 +2,7 @@ import math
 import random
 
 from enum import Enum
+from typing import Callable, Protocol
 
 from colorama import just_fix_windows_console, Fore, Back, Style, Cursor
 from sshkeyboard import listen_keyboard, stop_listening
@@ -205,6 +206,19 @@ class NoGuessesException(Exception):
     pass
 
 
+class GuessingStrategy(Protocol):
+    def guess(self) -> str:
+        r'''Ask for the word the guessing strategy would like to submit based on its current knowledge.
+
+        :returns: a word
+        :raises NoGuessesException: when the guessing strategy cannot make any guesses based on the information fed back so far
+        '''
+        raise NotImplementedError()
+
+    def feedback(self, guess: str, answer: list[Status]):
+        raise NotImplementedError()
+
+
 class RandomAssStrategy:
     def __init__(self, words: list[str]):
         self.words = words
@@ -241,28 +255,6 @@ class TheStrongestStrategy:
                 present_counts[letter] += 1
         self.possible_words = [word for word in self.possible_words if all(word.count(letter) == count for letter, count in present_counts.items())]
 
-
-class JonathanOlsonTree:
-    def __init__(self, json_path: str):
-        import json
-        with open(json_path, 'r') as f:
-            data = json.load(f)
-        self.tree = data
-
-    def guess(self) -> str:
-        try:
-            return self.tree['guess']
-        except TypeError:
-            return self.tree
-        except KeyError:
-            raise NoGuessesException()
-
-    def feedback(self, guess: str, answer: list[Status]):
-        key = ''.join({Status.NotPresent: '0', Status.Present: '1', Status.Placed: '2'}[status] for status in answer)
-        try:
-            self.tree = self.tree['map'][key]
-        except:
-            self.tree = {}
 
 
 if __name__ == '__main__':
